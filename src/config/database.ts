@@ -1,8 +1,15 @@
+import 'dotenv/config';
 import mongoose from 'mongoose';
 
 export async function connectToDatabase() {
     mongoose.set('strictQuery', true);
-    await mongoose.connect(process.env.MONGO_URI || 'mongodb+srv://joaoito:23082005&Ani@cluster-contaquiz.oczssfr.mongodb.net/');
+    const uri = process.env.MONGO_URI;
+    if (!uri) {
+        throw new Error('MONGO_URI não definida no .env');
+    }
+
+    await mongoose.connect(uri);
+    console.log('MongoDB conectado');
     return mongoose.connection;
 }
 
