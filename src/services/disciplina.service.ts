@@ -1,0 +1,84 @@
+import DisciplineModel, { CreateDisciplineDTO, UpdateDisciplineDTO } from '../models/Disciplina';
+import { FilterQuery } from 'mongoose';
+
+function httpError(status: number, message: string) {
+    const e: any = new Error(message);
+    e.status = status;
+    return e;
+}
+
+export async function createDiscipline(data: CreateDisciplineDTO) {
+    // Evita duplicidade amigavelmente (além do índice único)
+    const exists = await DisciplineModel.findOne({ name: data.name });
+    if (exists) throw httpError(409, 'Já existe uma disciplina com esse nome');
+
+    try {
+        return await DisciplineModel.create(data);
+    } catch (e: any) {
+        // Se o índice único disparar
+        if (e?.code === 11000) {
+            throw httpError(409, 'Já existe uma disciplina com esse nome');
+        }
+        throw e;
+    }
+}
+
+export async function getDisciplineById(id: string) {
+    const doc = await DisciplineModel.findById(id);
+    if (!doc) throw httpError(404, 'Disciplina não encontrada');
+    return doc;
+}
+
+export async function listDisciplines(opts: {
+    page?: number;
+    limit?: number;
+    q?: string;
+    active?: boolean;
+}) {
+    const page = Math.max(1, opts.page || 1);
+    const limit = Math.min(100, Math.max(1, opts.limit || 10));
+    const skip = (page - 1) * limit;
+
+    const filter: FilterQuery<any> = {};
+    if (typeof opts.active === 'boolean') filter.active = opts.active;
+    if (opts.q) {
+        filter.$or = [
+            { name: { $regex: opts.q, $options: 'i' } },
+            { description: { $regex: opts.q, $options: 'i' } },
+        ];
+    }
+
+    const [items, total] = await Promise.all([
+        DisciplineModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+        DisciplineModel.countDocuments(filter),
+    ]);
+
+    return {
+        items,
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+    };
+}
+
+export async function updateDiscipline(id: string, data: UpdateDisciplineDTO) {
+    // Se estiver trocando o nome, checa duplicidade
+    if (data.name) {
+        const clash = await DisciplineModel.findOne({ name: data.name, _id: { $ne: id } });
+        if (clash) throw httpError(409, 'Já existe uma disciplina com esse nome');
+    }
+
+    const updated = await DisciplineModel.findByIdAndUpdate(id, data, {
+        new: true,
+        runValidators: true,
+    });
+    if (!updated) throw httpError(404, 'Disciplina não encontrada');
+    return updated;
+}
+
+export async function deleteDiscipline(id: string) {
+    const deleted = await DisciplineModel.findByIdAndDelete(id);
+    if (!deleted) throw httpError(404, 'Disciplina não encontrada');
+    return deleted;
+}
