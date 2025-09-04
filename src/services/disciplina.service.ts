@@ -16,7 +16,11 @@ export async function listDisciplines(opts: ListOptions) {
     const skip = (page - 1) * limit;
 
     const filter: FilterQuery<any> = {};
-    if (typeof opts.active === 'boolean') filter.active = opts.active;
+    
+    if (opts.active !== undefined) {
+        filter.active = opts.active?.toString() === 'true';
+    }
+
     if (opts.filter) {
         filter.$or = [
             { name: { $regex: opts.filter, $options: 'i' } },
