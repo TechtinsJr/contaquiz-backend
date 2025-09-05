@@ -1,17 +1,18 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { validate } from '../middlewares/validate';
 import {
-    createDisciplineSchema,
-    updateDisciplineSchema,
-} from '../dtos/disciplina.dto';
+    createTopicSchema,
+    updateTopicSchema,
+    listTopicsSchema
+} from '../dtos/tema.dto';
 import { getByIdSchema, listSchema } from '../dtos/default.dto';
 import {
-    createDiscipline,
-    getDisciplineById,
-    listDisciplines,
-    updateDiscipline,
-    deleteDiscipline,
-} from '../services/disciplina.service';
+    createTopic,
+    getTopicById,
+    listTopics,
+    updateTopic,
+    deleteTopic,
+} from '../services/tema.service';
 import { ah } from '../middlewares/asyncHelper';
 
 const router = Router();
@@ -19,14 +20,15 @@ const router = Router();
 // LIST
 router.get(
     '/',
-    validate(listSchema),
+    validate(listTopicsSchema),
     ah(async (req, res) => {
-        const { page, limit, filter, active } = req.query as any;
-        const result = await listDisciplines({
+        const { page, limit, filter, active, disciplineId } = req.query as any;
+        const result = await listTopics({
             page: page ? Number(page) : undefined,
             limit: limit ? Number(limit) : undefined,
             filter,
             active, // já vem boolean pelo schema (se usar o validate)
+            disciplineId
         });
         res.json(result);
     })
@@ -37,7 +39,7 @@ router.get(
     '/:id',
     validate(getByIdSchema),
     ah(async (req, res) => {
-        const doc = await getDisciplineById(req.params.id);
+        const doc = await getTopicById(req.params.id);
         res.json({ data: doc });
     })
 );
@@ -45,9 +47,9 @@ router.get(
 // CREATE
 router.post(
     '/',
-    validate(createDisciplineSchema),
+    validate(createTopicSchema),
     ah(async (req, res) => {
-        const created = await createDiscipline(req.body);
+        const created = await createTopic(req.body);
         res.status(201).json({ data: created });
     })
 );
@@ -55,9 +57,9 @@ router.post(
 // UPDATE
 router.put(
     '/:id',
-    validate(updateDisciplineSchema),
+    validate(updateTopicSchema),
     ah(async (req, res) => {
-        const updated = await updateDiscipline(req.params.id, req.body);
+        const updated = await updateTopic(req.params.id, req.body);
         res.json({ data: updated });
     })
 );
@@ -67,7 +69,7 @@ router.delete(
     '/:id',
     validate(getByIdSchema),
     ah(async (req, res) => {
-        await deleteDiscipline(req.params.id);
+        await deleteTopic(req.params.id);
         res.status(204).send();
     })
 );
